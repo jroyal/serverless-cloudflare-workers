@@ -68,6 +68,18 @@ module.exports = {
       bindings = bindings.concat(wasmBindings);
     }
 
+    if (resources && resources.actors) {
+      let actorBindings = resources.actors.map(function(actor) {
+        return {
+          name: actor.variable,
+          type: 'actor_namespace',
+          namespace_id: actor.namespace_id
+        }
+      });
+
+      bindings = bindings.concat(actorBindings);
+    }
+
     // Get Environment Variables
     let envVars = Object.assign({}, provider.environment);
     envVars = Object.assign(envVars, functionObject.environment);
