@@ -32,49 +32,49 @@ module.exports = {
   /**
    * Parses the resources and environment config to build bindings for the worker. async because it has to get namespaces for the CF id
    * @param {*} provider
-   * @param {*} functionObject 
+   * @param {*} functionObject
    */
   async getBindings(provider, functionObject) {
-
     let bindings = [];
 
     let resources = functionObject.resources;
 
-    if (resources && resources.kv) { // do nothing if there is no kv config
+    if (resources && resources.kv) {
+      // do nothing if there is no kv config
       const namespaces = await cf.storage.getNamespaces();
 
       let namespaceBindings = resources.kv.map(function (store) {
         return {
           name: store.variable,
-          type: 'kv_namespace',
+          type: "kv_namespace",
           namespace_id: namespaces.find(function (ns) {
             return ns.title === store.namespace;
-          }).id
-        }
+          }).id,
+        };
       });
 
       bindings = bindings.concat(namespaceBindings);
     }
 
     if (resources && resources.wasm) {
-      let wasmBindings = resources.wasm.map(function(wasm) {
+      let wasmBindings = resources.wasm.map(function (wasm) {
         return {
           name: wasm.variable,
-          type: 'wasm_module',
-          part: path.basename(wasm.file, path.extname(wasm.file))
-        }
+          type: "wasm_module",
+          part: path.basename(wasm.file, path.extname(wasm.file)),
+        };
       });
 
       bindings = bindings.concat(wasmBindings);
     }
 
     if (resources && resources.actors) {
-      let actorBindings = resources.actors.map(function(actor) {
+      let actorBindings = resources.actors.map(function (actor) {
         return {
           name: actor.variable,
-          type: 'actor_namespace',
-          namespace_id: actor.namespace_id
-        }
+          type: "durable_object_class",
+          class_id: actor.namespace_id,
+        };
       });
 
       bindings = bindings.concat(actorBindings);
@@ -87,8 +87,8 @@ module.exports = {
     for (const key in envVars) {
       bindings.push({
         name: key,
-        type: 'secret_text',
-        text: envVars[key]
+        type: "secret_text",
+        text: envVars[key],
       });
     }
 
@@ -99,7 +99,7 @@ module.exports = {
    * Deploys the Worker Script in functionObject from the yml file
    * @param {*} accountId
    * @param {*} service
-   * @param {*} functionObject 
+   * @param {*} functionObject
    */
   async deployWorker(accountId, serverless, functionObject) {
     const { service } = serverless;
@@ -113,16 +113,16 @@ module.exports = {
       name: functionObject.name,
       script: contents,
       wasm: generateWASM(functionObject),
-      bindings
-    })
+      bindings,
+    });
 
     return t;
   },
 
   /**
    * Deploys the namespaces in function Object listed under resources->storage
-   * @param {*} accountId 
-   * @param {*} functionObject 
+   * @param {*} accountId
+   * @param {*} functionObject
    */
   async deployNamespaces(accountId, functionObject) {
     let responses = [];
@@ -131,7 +131,7 @@ module.exports = {
       for (const store of functionObject.resources.kv) {
         let result = await cf.storage.createNamespace({
           accountId,
-          name: store.namespace
+          name: store.namespace,
         });
         if (cf.storage.isDuplicateNamespaceError(result)) {
           result.success = true;
@@ -145,17 +145,21 @@ module.exports = {
 
   /**
    * Deploys all routes found in functionObject.events
-   * @param {*} zoneId 
-   * @param {*} functionObject 
+   * @param {*} zoneId
+   * @param {*} functionObject
    */
   async deployRoutes(zoneId, functionObject) {
     const allRoutes = this.getRoutes(functionObject.events);
     let routeResponses = [];
     for (const pattern of allRoutes) {
-      const response = await cf.routes.deploy({ path: pattern, scriptName: functionObject.name, zoneId });
-      routeResponses.push(response)
+      const response = await cf.routes.deploy({
+        path: pattern,
+        scriptName: functionObject.name,
+        zoneId,
+      });
+      routeResponses.push(response);
     }
 
     return routeResponses;
-  }
-}
+  },
+};
