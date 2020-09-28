@@ -72,8 +72,8 @@ module.exports = {
       let actorBindings = resources.actors.map(function (actor) {
         return {
           name: actor.variable,
-          type: "durable_object_class",
-          class_id: actor.namespace_id,
+          type: "durable_object_namespace",
+          namespace_id: actor.namespace_id,
         };
       });
 
